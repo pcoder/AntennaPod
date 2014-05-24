@@ -1,5 +1,16 @@
 package de.danoeh.antennapod.preferences;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -11,15 +22,6 @@ import de.danoeh.antennapod.BuildConfig;
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.activity.OpmlImportFromPathActivity;
 import de.danoeh.antennapod.receiver.FeedUpdateReceiver;
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Provides access to preferences set by the user in the settings screen. A
@@ -315,6 +317,7 @@ public class UserPreferences implements
 		} else if (key.equals(PREF_ENABLE_AUTODL_WIFI_FILTER)) {
 			enableAutodownloadWifiFilter = sp.getBoolean(
 					PREF_ENABLE_AUTODL_WIFI_FILTER, false);
+			restartUpdateAlarmForDownloads(System.currentTimeMillis());
 		} else if (key.equals(PREF_AUTODL_SELECTED_NETWORKS)) {
 			autodownloadSelectedNetworks = StringUtils.split(
 					sp.getString(PREF_AUTODL_SELECTED_NETWORKS, ""), ',');
@@ -511,6 +514,43 @@ public class UserPreferences implements
 				Log.d(TAG, "Automatic update was deactivated");
 		}
 	}
+	
+	/**
+	 * Updates download feeds alarm registered with the AlarmManager service or deactivates it.
+	 *
+	 * @param millis
+	 *           new value to register with AlarmManager. If millis is 0, the
+	 *            alarm is deactivated.
+	 * */
+	@SuppressLint("SimpleDateFormat")
+	public static void restartUpdateAlarmForDownloads(long millis) {
+		instanceAvailable();
+		// TODO pcoder - download scheduler code to be inserted
+		// Set the alarm to start at approximately 4 a.m.
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(millis);
+		calendar.set(Calendar.HOUR_OF_DAY, 4);
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy.MM.dd G 'at' HH:mm:ss z");	
+
+		if (BuildConfig.DEBUG)
+			Log.d(TAG, "Restarting download feeds alarm. New value: " +  sdf.format(calendar.getTime()));
+		AlarmManager alarmManager = (AlarmManager) instance.context
+				.getSystemService(Context.ALARM_SERVICE);
+		PendingIntent updateIntent = PendingIntent.getBroadcast(
+				instance.context, 0, new Intent(
+						FeedUpdateReceiver.ACTION_DOWNLOAD_FEEDS), 0);
+		alarmManager.cancel(updateIntent);
+		if (millis != 0) {
+			alarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(),
+			        AlarmManager.INTERVAL_DAY, updateIntent);
+			if (BuildConfig.DEBUG)
+				Log.d(TAG, "Changed download feed time to ");
+		} else {
+			if (BuildConfig.DEBUG)
+				Log.d(TAG, "Download scheduler was deactivated");
+		}
+	}	
 
     /**
      * Reads episode cache size as it is saved in the episode_cache_size_values array.
