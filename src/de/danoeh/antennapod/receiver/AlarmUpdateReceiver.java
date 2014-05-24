@@ -24,6 +24,7 @@ public class AlarmUpdateReceiver extends BroadcastReceiver {
 		}
 
 		UserPreferences.restartUpdateAlarm(UserPreferences.getUpdateInterval());
+		UserPreferences.restartUpdateAlarmForDownloads(System.currentTimeMillis());
 
 	}
 
