@@ -20,11 +20,15 @@ public class ConnectivityActionReceiver extends BroadcastReceiver {
 			if (BuildConfig.DEBUG)
 				Log.d(TAG, "Received intent");
 
+			// TODO pcoder - check if a user has a preference to download
+			// schedule, if yes by pass auto-download (and verify if an alarm is 
+			// in place (may not be necessary)).
+			
 			if (NetworkUtils.autodownloadNetworkAvailable(context)) {
 				if (BuildConfig.DEBUG)
 					Log.d(TAG,
 							"auto-dl network available, starting auto-download");
-					DBTasks.autodownloadUndownloadedItems(context);
+					// DBTasks.autodownloadUndownloadedItems(context);
 			} else { // if new network is Wi-Fi, finish ongoing downloads,
 						// otherwise cancel all downloads
 				ConnectivityManager cm = (ConnectivityManager) context
